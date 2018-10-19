@@ -89,3 +89,46 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_getdate(void) {
+  struct rtcdate *dp;
+  if (argptr(0, (char **)&dp, sizeof(dp)) < 0) {
+	  return -1;
+  }
+  cmostime(dp);
+  return 0;
+}
+
+int
+sys_sleep_sec(void) {
+  int sec;
+  uint hour0, minute0, sec0, score0;
+  struct rtcdate *dp;
+
+  if (argint(0, &sec) < 0) {
+    return -1;
+  }
+  if (argptr(0, (char **)&dp, sizeof(dp)) < 0) {
+    return -1;
+  }
+  // cmostime(dp0);
+  // acquire(&tickslock);
+  wakeup(&tickslock);
+  // sleep(&ticks, &tickslock);
+  cmostime(dp);
+  hour0 = dp->hour;
+  minute0 = dp->minute;
+  sec0 = dp->second;
+  score0 = hour0*60*60 + minute0*60 + sec0;
+  while((dp->hour*60*60 + dp->minute*60 + dp->second) - score0 < sec) {
+    if (myproc()->killed) {
+      wakeup(&tickslock);
+      return -1;
+    }
+    sleep(&ticks, &tickslock);
+    cmostime(dp);
+  }
+  release(&tickslock);
+  return 0;
+}
